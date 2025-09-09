@@ -1,0 +1,7 @@
+{
+  "arrowParens": "avoid",
+  "plugins": ["prettier-plugin-organize-imports"],
+  "printWidth": 100,
+  "singleQuote": true,
+  "trailingComma": "es5"
+}
