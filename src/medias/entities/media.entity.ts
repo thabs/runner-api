@@ -1,4 +1,4 @@
-import { Plug } from 'src/plugs/entities/plug.entity';
+import { Plug } from 'plugs/entities/plug.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { MimeType } from './mime-type.enum';
 
@@ -19,6 +19,6 @@ export class Media {
   @Column({ unique: true })
   url: string;
 
-  @ManyToOne(() => Plug, (plug) => plug.medias)
+  @ManyToOne(() => Plug, plug => plug.medias)
   plug: Plug;
 }

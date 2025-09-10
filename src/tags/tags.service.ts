@@ -13,7 +13,7 @@ export class TagsService {
   async create(createTagDto: CreateTagDto): Promise<Tag> {
     const { name } = createTagDto;
     const tag = await this.tagRepo.findOne({ where: { name } });
-    if (!tag) throw new BadRequestException(`Tag with name '${name}' already exists.`);
+    if (tag) throw new BadRequestException(`Tag with name '${name}' already exists.`);
 
     const newTag = this.tagRepo.create(createTagDto);
     return this.tagRepo.save(newTag);

@@ -10,10 +10,10 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const config = new DocumentBuilder()
-    .setTitle('Groza API Gateway')
-    .setDescription('The Groza delivery app API Gateway')
+    .setTitle('Runner API')
+    .setDescription('The Runner Shopper app API')
     .setVersion('1.0')
-    .addTag('api-gateway')
+    .addTag('runner-api')
     .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);

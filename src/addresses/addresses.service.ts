@@ -8,22 +8,9 @@ import { Address } from './entities/address.entity';
 
 @Injectable()
 export class AddressesService {
-  constructor(
-    @InjectRepository(Address) private addressRepository: Repository<Address>,
-  ) {}
+  constructor(@InjectRepository(Address) private addressRepository: Repository<Address>) {}
 
-  async create(createAddressDto: CreateAddressDto): Promise<Address> {
-    const { longitude, latitude, ...body } = createAddressDto;
-
-    const address = this.addressRepository.create({
-      ...body,
-      coordinates: { latitude, longitude },
-    });
-
-    return this.addressRepository.save(address);
-  }
-
-  async createUserAddress(createAddressDto: CreateAddressDto,currentUser: User): Promise<Address> {
+  async createUserAddress(createAddressDto: CreateAddressDto, currentUser: User): Promise<Address> {
     const { longitude, latitude, ...body } = createAddressDto;
 
     const address = this.addressRepository.create({
@@ -35,7 +22,12 @@ export class AddressesService {
     return this.addressRepository.save(address);
   }
 
-  async update(id: string,updateAddressDto: UpdateAddressDto): Promise<Address> {
+  async findAll(currentUser: User): Promise<Address[]> {
+    const addresses = await this.addressRepository.find({ where: { user: currentUser } });
+    return addresses;
+  }
+
+  async update(id: string, updateAddressDto: UpdateAddressDto): Promise<Address> {
     const address = await this.addressRepository.findOne({ where: { id } });
     if (!address) {
       throw new NotFoundException('address not found');
