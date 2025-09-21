@@ -1,4 +1,4 @@
-import { Category } from 'brands/entities/category.enum';
+import { BrandCategory } from '@app/models';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateBrandDto {
@@ -14,8 +14,8 @@ export class CreateBrandDto {
   facebook?: string;
 
   @IsArray()
-  @IsEnum(Category, { each: true })
-  categories: Category[];
+  @IsEnum(BrandCategory, { each: true })
+  categories: BrandCategory[];
 
   @IsArray()
   @IsString({ each: true })

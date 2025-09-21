@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { CreateAddressDto } from 'addresses/dto/create-address.dto';
-import { Address } from 'addresses/entities/address.entity';
-import { City } from 'cities/entities/city.entity';
-import { Country } from 'countries/entities/country.entity';
-import { Province } from 'provinces/entities/province.entity';
+import { CreateAddressDto } from 'src/addresses/dto/create-address.dto';
+import { Address } from 'src/addresses/entities/address.entity';
+import { City } from 'src/cities/entities/city.entity';
+import { Country } from 'src/countries/entities/country.entity';
+import { Province } from 'src/provinces/entities/province.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CreateShoppingCentreDto } from './dto/create-shopping-centre.dto';
 import { FilterShoppingCenterDto } from './dto/filter-shopping-centre.dto';
@@ -51,7 +51,16 @@ export class ShoppingCentresService {
   }
 
   async findAll(filter: FilterShoppingCenterDto) {
-    const { country, province, city, page = 1, limit = 10, search, orderBy, orderDirection = 'ASC' } = filter;
+    const {
+      country,
+      province,
+      city,
+      page = 1,
+      limit = 10,
+      search,
+      orderBy,
+      orderDirection = 'ASC',
+    } = filter;
 
     const qb = this.shoppingCentreRepo
       .createQueryBuilder('shoppingCentre')
@@ -62,9 +71,12 @@ export class ShoppingCentresService {
     if (city) qb.andWhere('address.city = :city', { city });
 
     if (search) {
-      qb.andWhere('(shoppingCentre.name ILIKE :search OR address.suburb ILIKE :search OR address.city ILIKE :search)', {
-        search: `%${search}%`,
-      });
+      qb.andWhere(
+        '(shoppingCentre.name ILIKE :search OR address.suburb ILIKE :search OR address.city ILIKE :search)',
+        {
+          search: `%${search}%`,
+        }
+      );
     }
 
     // ✅ Apply dynamic ordering
@@ -138,7 +150,10 @@ export class ShoppingCentresService {
     return shoppingCentre;
   }
 
-  async update(id: string, updateShoppingCentreDto: UpdateShoppingCentreDto): Promise<ShoppingCentre> {
+  async update(
+    id: string,
+    updateShoppingCentreDto: UpdateShoppingCentreDto
+  ): Promise<ShoppingCentre> {
     const { name, address } = updateShoppingCentreDto;
 
     return this.dataSource.transaction(async manager => {

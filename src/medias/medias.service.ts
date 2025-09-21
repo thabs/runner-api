@@ -1,4 +1,4 @@
-import { Media } from '@app/models';
+import { Media, MediaCategory } from '@app/models';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -6,9 +6,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { S3 } from 'aws-sdk';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { CreateMediaDto } from './dto/create-media.dto';
-import { UpdateMediaFileDto } from './dto/update-media-file.dto';
-import { UpdateMediaDto } from './dto/update-media.dto';
 
 @Injectable()
 export class MediasService {
@@ -28,29 +25,27 @@ export class MediasService {
     this.bucket = this.configService.get('AWS_S3_BUCKET_NAME') ?? '';
   }
 
-  async create(file: Express.Multer.File, createMediaDto: CreateMediaDto) {
-    const { mimeType, category } = createMediaDto;
-
+  async create(mediaCategory: MediaCategory, file: Express.Multer.File): Promise<Media> {
     try {
-      const mediaCategory = category.toLowerCase().replace(/[^a-z]/g, '');
       const extension = file.filename.split('.').pop();
       const key = `${mediaCategory}/${uuidv4()}.${extension}`;
 
       let params = {
         Bucket: this.bucket,
-        ContentType: mimeType,
+        ContentType: file.mimetype,
         Key: key,
       };
 
       const url = await this.s3.getSignedUrlPromise('getObject', params);
       await this.httpService.put(url, file, {
         headers: {
-          'Content-Type': mimeType,
+          'Content-Type': file.mimetype,
         },
       });
 
       const media = this.mediasRepository.create({
-        ...createMediaDto,
+        mimeType: file.mimetype,
+        category: mediaCategory,
         url,
       });
       return this.mediasRepository.save(media);
@@ -59,25 +54,17 @@ export class MediasService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Media | null> {
     const media = await this.mediasRepository.findOneBy({ id });
     return media;
   }
 
-  async update(id: string, updateMediaDto: UpdateMediaDto) {
-    const media = await this.mediasRepository.findOneBy({ id });
-    if (!media) throw new BadRequestException('media not found');
-
-    Object.assign(media, updateMediaDto);
-    return this.mediasRepository.save(media);
-  }
-
-  async updateFile(file: Express.Multer.File, id: string, updateMediaFileDto: UpdateMediaFileDto) {
+  async update(id: string, file: Express.Multer.File): Promise<Media> {
     try {
-      const { url, mimeType } = updateMediaFileDto;
-
       const media = await this.mediasRepository.findOneBy({ id });
-      if (!media) throw new BadRequestException('media not found');
+      if (!media) throw new BadRequestException('Media not found');
+
+      const { url, category } = media;
 
       //! Delete from AWS
       await this.s3
@@ -87,27 +74,27 @@ export class MediasService {
         })
         .promise();
 
-      const mediaCategory = media.category.toLowerCase().replace(/[^a-z]/g, '');
       const extension = file.filename.split('.').pop();
-      const key = `${mediaCategory}/${uuidv4()}.${extension}`;
+      const key = `${category}/${uuidv4()}.${extension}`;
 
       const params = {
         Bucket: this.configService.get('AWS_S3_BUCKET_NAME'),
-        ContentType: mimeType,
+        ContentType: file.mimetype,
         Key: key,
       };
 
       const newMediaUrl = await this.s3.getSignedUrlPromise('getObject', params);
       await this.httpService.put(newMediaUrl, file, {
         headers: {
-          'Content-Type': mimeType,
+          'Content-Type': file.mimetype,
         },
       });
 
       Object.assign(media, {
-        ...updateMediaFileDto,
+        mimeType: file.mimetype,
         url: newMediaUrl,
       });
+
       return this.mediasRepository.save(media);
     } catch (error) {
       throw error;
@@ -116,7 +103,7 @@ export class MediasService {
 
   async remove(id: string) {
     const media = await this.mediasRepository.findOneBy({ id });
-    if (!media) throw new BadRequestException('media not found');
+    if (!media) throw new BadRequestException('Media not found');
 
     await this.s3
       .deleteObject({

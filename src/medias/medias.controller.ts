@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ImageFileValidationPipe, VideoFileValidationPipe } from '@app/common';
+import { Controller, Get, Param, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes } from '@nestjs/swagger';
 import { MediasService } from './medias.service';
-import { CreateMediaDto } from './dto/create-media.dto';
-import { UpdateMediaDto } from './dto/update-media.dto';
 
 @Controller('medias')
 export class MediasController {
   constructor(private readonly mediasService: MediasService) {}
 
-  @Post()
-  create(@Body() createMediaDto: CreateMediaDto) {
-    return this.mediasService.create(createMediaDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.mediasService.findAll();
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.mediasService.findOne(+id);
+    return this.mediasService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMediaDto: UpdateMediaDto) {
-    return this.mediasService.update(+id, updateMediaDto);
+  @Put('image/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  updateImage(
+    @Param('id') id: string,
+    @UploadedFile(new ImageFileValidationPipe()) file: Express.Multer.File
+  ) {
+    return this.mediasService.update(id, file);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mediasService.remove(+id);
+  @Put('video/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  updateVideo(
+    @Param('id') id: string,
+    @UploadedFile(new VideoFileValidationPipe()) file: Express.Multer.File
+  ) {
+    return this.mediasService.update(id, file);
   }
 }
