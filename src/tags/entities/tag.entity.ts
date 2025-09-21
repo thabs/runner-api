@@ -1,4 +1,4 @@
-import { Store } from 'stores/entities/store.entity';
+import { Brand } from 'brands/entities/brand.entity';
 import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('tags')
@@ -9,6 +9,6 @@ export class Tag {
   @Column({ unique: true })
   name: string;
 
-  @ManyToMany(() => Store, store => store.tags)
-  stores: Store[];
+  @ManyToMany(() => Brand, brand => brand.tags)
+  brands: Brand[];
 }

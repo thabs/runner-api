@@ -1,12 +1,6 @@
+import { Brand } from 'brands/entities/brand.entity';
 import { Media } from 'medias/entities/media.entity';
-import { Store } from 'stores/entities/store.entity';
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('plugs')
 export class Plug {
@@ -19,11 +13,11 @@ export class Plug {
   @Column()
   description?: string;
 
-  @OneToMany(() => Media, (media) => media.plug, { nullable: true })
+  @OneToMany(() => Media, media => media.plug, { nullable: true })
   medias: Media[];
 
-  @ManyToOne(() => Store, (store) => store.plugs)
-  store: Store;
+  @ManyToOne(() => Brand, brand => brand.plugs)
+  brand: Brand;
 
   @Column({ default: true })
   isActive: boolean;

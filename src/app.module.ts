@@ -24,6 +24,7 @@ import { ShoppingCentresModule } from './shopping-centres/shopping-centres.modul
 import { StoresModule } from './stores/stores.module';
 import { TagsModule } from './tags/tags.module';
 import { UsersModule } from './users/users.module';
+import { BrandsModule } from './brands/brands.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -69,6 +70,7 @@ const ENV = process.env.NODE_ENV;
     CountriesModule,
     ProvincesModule,
     CitiesModule,
+    BrandsModule,
   ],
 })
 export class AppModule {}

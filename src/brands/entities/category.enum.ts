@@ -1,4 +1,4 @@
 export enum Category {
   FASHION = 'Fashion',
-  HOME = 'Home',
+  HOME_DECO = 'Home Decor',
 }

@@ -1,4 +1,5 @@
 import { Address } from 'addresses/entities/address.entity';
+import { Media } from 'medias/entities/media.entity';
 import { Store } from 'stores/entities/store.entity';
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -15,6 +16,12 @@ export class ShoppingCentre {
   })
   @JoinColumn()
   address: Address;
+
+  @OneToOne(() => Media, media => media.shoppingCentre, {
+    cascade: true,
+  })
+  @JoinColumn()
+  image: Media;
 
   @OneToMany(() => Store, store => store.shoppingCentre, { nullable: true })
   stores: Store[];
