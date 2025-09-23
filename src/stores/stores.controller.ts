@@ -1,6 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, ValidationPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AssignPlugsDto } from './dto/assign-plugs.dto';
-import { AssignTagsDto } from './dto/assign-tags.dto';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { FilterStoreDto } from './dto/filter-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -13,11 +22,6 @@ export class StoresController {
   @Post()
   create(@Body() createStoreDto: CreateStoreDto) {
     return this.storesService.create(createStoreDto);
-  }
-
-  @Post(':id/tags')
-  assignTags(@Param('id') id: string, @Body() assignTagsDto: AssignTagsDto) {
-    return this.storesService.assignTagsToStore(id, assignTagsDto);
   }
 
   @Post(':id/plugs')

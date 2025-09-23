@@ -1,5 +1,6 @@
 export * from './address.entity';
 export * from './brand.entity';
+export * from './category.entity';
 export * from './city.entity';
 export * from './country.entity';
 export * from './media.entity';
@@ -7,4 +8,5 @@ export * from './plug.entity';
 export * from './province.entity';
 export * from './shopping-centre.entity';
 export * from './store.entity';
+export * from './tag.entity';
 export * from './user.entity';

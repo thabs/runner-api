@@ -1,34 +1,72 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { PlugsService } from './plugs.service';
+import { ApiPaginatedResponse, ImageFileValidationPipe } from '@app/common';
+import { Plug } from '@app/models';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes } from '@nestjs/swagger';
 import { CreatePlugDto } from './dto/create-plug.dto';
+import { FilterPlugDto } from './dto/filter-plug.dto';
 import { UpdatePlugDto } from './dto/update-plug.dto';
+import { PlugsService } from './plugs.service';
 
 @Controller('plugs')
 export class PlugsController {
   constructor(private readonly plugsService: PlugsService) {}
 
   @Post()
-  create(@Body() createPlugDto: CreatePlugDto) {
-    return this.plugsService.create(createPlugDto);
+  @UseInterceptors(FilesInterceptor('files', 5)) // max 5 files
+  @ApiConsumes('multipart/form-data')
+  create(
+    @Body() createPlugDto: CreatePlugDto,
+    @UploadedFiles(new ImageFileValidationPipe()) files: Express.Multer.File[]
+  ) {
+    return this.plugsService.create(createPlugDto, files);
   }
 
   @Get()
-  findAll() {
-    return this.plugsService.findAll();
+  @ApiPaginatedResponse(Plug)
+  findAll(@Query() filter: FilterPlugDto) {
+    return this.plugsService.findAll(filter);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.plugsService.findOne(+id);
+    return this.plugsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updatePlugDto: UpdatePlugDto) {
-    return this.plugsService.update(+id, updatePlugDto);
+    return this.plugsService.update(id, updatePlugDto);
+  }
+
+  @Put('active/:id/:isActive')
+  updateActive(@Param('id') id: string, @Param('isActive') isActive: string) {
+    const active = isActive === 'true'; // convert string to boolean
+    return this.plugsService.updateActive(id, active);
+  }
+
+  @Put('media/:id')
+  @UseInterceptors(FilesInterceptor('files', 5)) // max 5 files
+  @ApiConsumes('multipart/form-data')
+  updateMedia(
+    @Param('id') id: string,
+    @UploadedFiles(new ImageFileValidationPipe()) files: Express.Multer.File[]
+  ) {
+    return this.plugsService.updateMedia(id, files);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.plugsService.remove(+id);
+    return this.plugsService.remove(id);
   }
 }

@@ -1,5 +1,5 @@
 // dto/filter-users.dto.ts
-import { BrandCategory, PaginationRequestDto } from '@app/models';
+import { Department, PaginationRequestDto } from '@app/models';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsIn, IsOptional } from 'class-validator';
 
@@ -7,8 +7,8 @@ export type BrandOrderBy = 'name' | 'isActive';
 
 export class FilterBrandDto extends PaginationRequestDto<BrandOrderBy> {
   @IsArray()
-  @IsEnum(BrandCategory, { each: true })
-  categories: BrandCategory[];
+  @IsEnum(Department, { each: true })
+  departments: Department[];
 
   @ApiPropertyOptional({ enum: ['name', 'isActive'], default: 'name' })
   @IsOptional()

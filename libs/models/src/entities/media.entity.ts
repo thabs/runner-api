@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { MediaCategory } from '../enums/media-category.enum';
+import { MediaGroup } from '../enums';
 import { Brand } from './brand.entity';
+import { Category } from './category.entity';
 import { Plug } from './plug.entity';
 import { ShoppingCentre } from './shopping-centre.entity';
 import { Store } from './store.entity';
@@ -15,9 +16,9 @@ export class Media {
 
   @Column({
     type: 'enum',
-    enum: MediaCategory,
+    enum: MediaGroup,
   })
-  category: MediaCategory;
+  group: MediaGroup;
 
   @Column({ unique: true })
   url: string;
@@ -32,9 +33,14 @@ export class Media {
   })
   brand: Brand;
 
+  @OneToOne(() => Category, category => category.image, {
+    nullable: true,
+  })
+  category: Category;
+
   @OneToMany(() => Store, store => store.shoppingCentre, { nullable: true })
   stores: Store[];
 
-  @ManyToOne(() => Plug, plug => plug.medias)
+  @ManyToOne(() => Plug, plug => plug.medias, { onDelete: 'CASCADE' })
   plug: Plug;
 }

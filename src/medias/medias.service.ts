@@ -1,4 +1,4 @@
-import { Media, MediaCategory } from '@app/models';
+import { Media, MediaGroup } from '@app/models';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -25,10 +25,10 @@ export class MediasService {
     this.bucket = this.configService.get('AWS_S3_BUCKET_NAME') ?? '';
   }
 
-  async create(mediaCategory: MediaCategory, file: Express.Multer.File): Promise<Media> {
+  async create(mediaGroup: MediaGroup, file: Express.Multer.File): Promise<Media> {
     try {
       const extension = file.filename.split('.').pop();
-      const key = `${mediaCategory}/${uuidv4()}.${extension}`;
+      const key = `${mediaGroup}/${uuidv4()}.${extension}`;
 
       let params = {
         Bucket: this.bucket,
@@ -45,7 +45,7 @@ export class MediasService {
 
       const media = this.mediasRepository.create({
         mimeType: file.mimetype,
-        category: mediaCategory,
+        group: mediaGroup,
         url,
       });
       return this.mediasRepository.save(media);
@@ -64,7 +64,7 @@ export class MediasService {
       const media = await this.mediasRepository.findOneBy({ id });
       if (!media) throw new BadRequestException('Media not found');
 
-      const { url, category } = media;
+      const { url, group } = media;
 
       //! Delete from AWS
       await this.s3
@@ -75,7 +75,7 @@ export class MediasService {
         .promise();
 
       const extension = file.filename.split('.').pop();
-      const key = `${category}/${uuidv4()}.${extension}`;
+      const key = `${group}/${uuidv4()}.${extension}`;
 
       const params = {
         Bucket: this.configService.get('AWS_S3_BUCKET_NAME'),
@@ -99,6 +99,15 @@ export class MediasService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async deleteFile(url: string) {
+    await this.s3
+      .deleteObject({
+        Bucket: this.bucket,
+        Key: url,
+      })
+      .promise();
   }
 
   async remove(id: string) {

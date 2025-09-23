@@ -24,6 +24,21 @@ export class ShoppingCentresController {
     return this.shoppingCentresService.findNearby(findNearbyDto);
   }
 
+  @Get('countries')
+  findCountries() {
+    return this.shoppingCentresService.findCountries();
+  }
+
+  @Get('provinces')
+  findProvinces(@Query('country') country: string) {
+    return this.shoppingCentresService.findProvincesByCountry(country);
+  }
+
+  @Get('cities')
+  async findCities(@Query('country') country: string, @Query('province') province: string) {
+    return this.shoppingCentresService.findCitiesByProvince(country, province);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.shoppingCentresService.findOne(id);

@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes } from '@nestjs/swagger';
 import { BrandsService } from './brands.service';
+import { AssignTagsDto } from './dto/assign-tags.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { FilterBrandDto } from './dto/filter-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
@@ -27,10 +28,15 @@ export class BrandsController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   create(
-    @UploadedFile(new ImageFileValidationPipe()) file: Express.Multer.File,
-    @Body() createBrandDto: CreateBrandDto
+    @Body() createBrandDto: CreateBrandDto,
+    @UploadedFile(new ImageFileValidationPipe()) file: Express.Multer.File
   ) {
-    return this.brandsService.create(file, createBrandDto);
+    return this.brandsService.create(createBrandDto, file);
+  }
+
+  @Post(':id/tags')
+  assignTags(@Param('id') id: string, @Body() assignTagsDto: AssignTagsDto) {
+    return this.brandsService.assignTags(id, assignTagsDto);
   }
 
   @Get()

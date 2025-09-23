@@ -1,10 +1,12 @@
-import { Brand, MediaCategory, PaginatedResult } from '@app/models';
+import { Brand, MediaGroup, PaginatedResult } from '@app/models';
 import { applyPagination } from '@app/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MediasService } from 'src/medias/medias.service';
+import { PlugsService } from 'src/plugs/plugs.service';
 import { TagsService } from 'src/tags/tags.service';
 import { Repository } from 'typeorm';
+import { AssignTagsDto } from './dto/assign-tags.dto';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { FilterBrandDto } from './dto/filter-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
@@ -14,12 +16,13 @@ export class BrandsService {
   constructor(
     @InjectRepository(Brand) private brandRepo: Repository<Brand>,
     private readonly mediaService: MediasService,
-    private readonly tagService: TagsService
+    private readonly tagService: TagsService,
+    private readonly plugsService: PlugsService
   ) {}
 
-  async create(file: Express.Multer.File, createBrandDto: CreateBrandDto) {
-    const media = await this.mediaService.create(MediaCategory.BRAND, file);
-    const brand = this.brandRepo.create({ ...createBrandDto, image: media });
+  async create(createBrandDto: CreateBrandDto, file: Express.Multer.File) {
+    const image = await this.mediaService.create(MediaGroup.BRAND, file);
+    const brand = this.brandRepo.create({ ...createBrandDto, image });
     return this.brandRepo.save(brand);
   }
 
@@ -31,9 +34,9 @@ export class BrandsService {
 
     qb = applyPagination(qb, filter);
 
-    // Apply category[] filter if provided
-    if (filter.categories && filter.categories.length > 0) {
-      qb.andWhere('brand.category IN (:...categories)', { categories: filter.categories });
+    // Apply department[] filter if provided
+    if (filter.departments && filter.departments.length > 0) {
+      qb.andWhere('brand.department IN (:...departments)', { departments: filter.departments });
     }
 
     const [data, total] = await qb.getManyAndCount();
@@ -73,6 +76,23 @@ export class BrandsService {
       const tags = await this.tagService.findByIds(tagIds);
       brand.tags = tags;
     }
+
+    return this.brandRepo.save(brand);
+  }
+
+  async assignTags(id: string, assignTagsDto: AssignTagsDto) {
+    const { tagIds } = assignTagsDto;
+    const brand = await this.brandRepo.findOne({
+      where: { id },
+      relations: ['tags'],
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+
+    const tags = await this.tagService.findByIds(tagIds);
+    brand.tags = tags;
 
     return this.brandRepo.save(brand);
   }

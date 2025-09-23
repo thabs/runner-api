@@ -1,17 +1,13 @@
+import { Address, ShoppingCentre } from '@app/models';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { CreateAddressDto } from 'src/addresses/dto/create-address.dto';
-import { Address } from 'src/addresses/entities/address.entity';
-import { City } from 'src/cities/entities/city.entity';
-import { Country } from 'src/countries/entities/country.entity';
-import { Province } from 'src/provinces/entities/province.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CreateShoppingCentreDto } from './dto/create-shopping-centre.dto';
 import { FilterShoppingCenterDto } from './dto/filter-shopping-centre.dto';
 import { FindNearbyDto } from './dto/find-nearby.dto';
 import { LocationResponseDto } from './dto/location-response.dto';
 import { UpdateShoppingCentreDto } from './dto/update-shopping-centre.dto';
-import { ShoppingCentre } from './entities/shopping-centre.entity';
 
 @Injectable()
 export class ShoppingCentresService {
@@ -131,6 +127,42 @@ export class ShoppingCentresService {
       longitude: shoppingCentre.address.coordinates.longitude,
       distanceKm: Number(raw[i].distance) / 1000, // convert meters → km
     }));
+  }
+
+  async findCountries(): Promise<string[]> {
+    const result = await this.shoppingCentreRepo
+      .createQueryBuilder('shoppingCentre')
+      .leftJoinAndSelect('shoppingCentre.address', 'address')
+      .select('DISTINCT address.country', 'country')
+      .orderBy('address.country', 'ASC')
+      .getRawMany();
+
+    return result.map(r => r.country);
+  }
+
+  async findProvincesByCountry(country: string): Promise<string[]> {
+    const result = await this.shoppingCentreRepo
+      .createQueryBuilder('shoppingCentre')
+      .leftJoinAndSelect('shoppingCentre.address', 'address')
+      .select('DISTINCT address.province', 'province')
+      .where('LOWER(address.country) = LOWER(:country)', { country })
+      .orderBy('address.province', 'ASC')
+      .getRawMany();
+
+    return result.map(r => r.province);
+  }
+
+  async findCitiesByProvince(country: string, province: string): Promise<string[]> {
+    const result = await this.shoppingCentreRepo
+      .createQueryBuilder('shoppingCentre')
+      .leftJoinAndSelect('shoppingCentre.address', 'address')
+      .select('DISTINCT address.city', 'city')
+      .where('LOWER(address.country) = LOWER(:country)', { country })
+      .andWhere('LOWER(address.province) = LOWER(:province)', { province })
+      .orderBy('address.city', 'ASC')
+      .getRawMany();
+
+    return result.map(r => r.city);
   }
 
   async findOne(id: string): Promise<ShoppingCentre> {

@@ -1,6 +1,6 @@
-import { CreateAddressDto } from 'addresses/dto/create-address.dto';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { CreateAddressDto } from 'src/addresses/dto/create-address.dto';
 
 export class CreateShoppingCentreDto {
   @IsString()

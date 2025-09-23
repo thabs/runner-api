@@ -1,4 +1,4 @@
-import { BrandCategory } from '@app/models';
+import { Department } from '@app/models';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateBrandDto {
@@ -14,8 +14,8 @@ export class CreateBrandDto {
   facebook?: string;
 
   @IsArray()
-  @IsEnum(BrandCategory, { each: true })
-  categories: BrandCategory[];
+  @IsEnum(Department, { each: true })
+  departments: Department[];
 
   @IsArray()
   @IsString({ each: true })

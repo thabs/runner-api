@@ -5,7 +5,6 @@ import { ShoppingCentresService } from 'shopping-centres/shopping-centres.servic
 import { TagsService } from 'tags/tags.service';
 import { Repository } from 'typeorm';
 import { AssignPlugsDto } from './dto/assign-plugs.dto';
-import { AssignTagsDto } from './dto/assign-tags.dto';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { FilterStoreDto } from './dto/filter-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -31,23 +30,6 @@ export class StoresService {
     return this.storeRepo.save(store);
   }
 
-  async assignTagsToStore(id: string, assignTagsDto: AssignTagsDto) {
-    const { tagIds } = assignTagsDto;
-    const store = await this.storeRepo.findOne({
-      where: { id },
-      relations: ['tags'],
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
-
-    const tags = await this.tagService.findByIds(tagIds);
-    store.tags = tags;
-
-    return this.storeRepo.save(store);
-  }
-
   async assignPlugsToStore(id: string, assignPlugsDto: AssignPlugsDto) {
     const { plugIds } = assignPlugsDto;
     const store = await this.storeRepo.findOne({
@@ -66,7 +48,15 @@ export class StoresService {
   }
 
   async findAll(filter: FilterStoreDto) {
-    const { categories, search, isActive, orderBy, orderDirection = 'ASC', page = 1, limit = 10 } = filter;
+    const {
+      categories,
+      search,
+      isActive,
+      orderBy,
+      orderDirection = 'ASC',
+      page = 1,
+      limit = 10,
+    } = filter;
 
     const qb = this.storeRepo
       .createQueryBuilder('store')
@@ -152,7 +142,9 @@ export class StoresService {
       .getExists();
 
     if (hasPlugs) {
-      throw new BadRequestException(`Cannot delete store '${store.name}', it is still assigned to one or more plugs.`);
+      throw new BadRequestException(
+        `Cannot delete store '${store.name}', it is still assigned to one or more plugs.`
+      );
     }
     await this.storeRepo.remove(store);
   }

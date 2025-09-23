@@ -8,7 +8,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { BrandCategory } from '../enums/brand-category.enum';
+import { Department } from '../enums/department.enum';
 import { Media } from './media.entity';
 import { Plug } from './plug.entity';
 import { Store } from './store.entity';
@@ -30,10 +30,10 @@ export class Brand {
 
   @Column({
     type: 'enum',
-    enum: BrandCategory,
+    enum: Department,
     array: true,
   })
-  categories: BrandCategory[];
+  departments: Department[];
 
   @OneToOne(() => Media, media => media.brand, {
     cascade: true,
