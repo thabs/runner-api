@@ -1,7 +1,15 @@
-// dto/filter-users.dto.ts
-import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { PaginationRequestDto } from '@app/models/requests/pagination-request';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
-export class FilterShoppingCenterDto {
+export type ShoppingCentreOrderBy =
+  | 'name'
+  | 'isActive'
+  | 'address.country'
+  | 'address.province'
+  | 'address.city';
+
+export class FilterShoppingCenterDto extends PaginationRequestDto<ShoppingCentreOrderBy> {
   @IsOptional()
   @IsString()
   country?: string;
@@ -14,36 +22,14 @@ export class FilterShoppingCenterDto {
   @IsString()
   city?: string;
 
+  @ApiPropertyOptional({
+    enum: ['name', 'isActive', 'address.country', 'address.province', 'address.city'],
+    default: 'name',
+  })
   @IsOptional()
-  @IsString()
-  search?: string;
+  @IsIn(['name', 'isActive', 'address.country', 'address.province', 'address.city'])
+  orderBy: ShoppingCentreOrderBy = 'name';
 
-  @IsOptional()
-  @IsIn([
-    'shoppingCentre.name',
-    'shoppingCentre.isActive',
-    'address.country',
-    'address.province',
-    'address.city',
-    'address.suburb',
-  ])
-  orderBy?:
-    | 'shoppingCentre.name'
-    | 'shoppingCentre.isActive'
-    | 'address.country'
-    | 'address.province'
-    | 'address.city'
-    | 'address.suburb';
-
-  @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  orderDirection?: 'ASC' | 'DESC';
-
-  @IsOptional()
-  @IsNumber()
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  limit?: number = 10;
+  /** Columns that can be searched */
+  readonly searchFields = ['name', 'tags.name'];
 }

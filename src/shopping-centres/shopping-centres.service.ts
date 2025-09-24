@@ -1,8 +1,10 @@
-import { Address, ShoppingCentre } from '@app/models';
+import { MediaGroup, PaginatedResult, ShoppingCentre } from '@app/models';
+import { applyPagination } from '@app/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { CreateAddressDto } from 'src/addresses/dto/create-address.dto';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { AddressesService } from 'src/addresses/addresses.service';
+import { MediasService } from 'src/medias/medias.service';
+import { DataSource, Repository } from 'typeorm';
 import { CreateShoppingCentreDto } from './dto/create-shopping-centre.dto';
 import { FilterShoppingCenterDto } from './dto/filter-shopping-centre.dto';
 import { FindNearbyDto } from './dto/find-nearby.dto';
@@ -13,83 +15,47 @@ import { UpdateShoppingCentreDto } from './dto/update-shopping-centre.dto';
 export class ShoppingCentresService {
   constructor(
     @InjectRepository(ShoppingCentre) private shoppingCentreRepo: Repository<ShoppingCentre>,
+    private readonly addressService: AddressesService,
+    private readonly mediasService: MediasService,
     @InjectDataSource() private dataSource: DataSource
   ) {}
 
-  async create(createShoppingCentreDto: CreateShoppingCentreDto): Promise<ShoppingCentre> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  async create(createShoppingCentreDto: CreateShoppingCentreDto, file: Express.Multer.File) {
+    const address = await this.addressService.create(createShoppingCentreDto.address);
+    const image = await this.mediasService.create(MediaGroup.SHOPPING_CENTRE, file);
 
-    try {
-      const { name, address } = createShoppingCentreDto;
-      await this.updateAdressFilters(queryRunner.manager, address);
+    const shoppingCentre = this.shoppingCentreRepo.create({
+      ...createShoppingCentreDto,
+      address,
+      image,
+    });
 
-      // ✅ Create Address
-      const newAddress = queryRunner.manager.create(Address, address);
-      const savedAddress = await queryRunner.manager.save(Address, newAddress);
-
-      // ✅ Create Shopping centre
-      const shoppingCentre = queryRunner.manager.create(ShoppingCentre, {
-        name,
-        address: savedAddress,
-      });
-      const savedShoppingCentre = await queryRunner.manager.save(ShoppingCentre, shoppingCentre);
-
-      await queryRunner.commitTransaction();
-      return savedShoppingCentre;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
+    return this.shoppingCentreRepo.save(shoppingCentre);
   }
 
-  async findAll(filter: FilterShoppingCenterDto) {
-    const {
-      country,
-      province,
-      city,
-      page = 1,
-      limit = 10,
-      search,
-      orderBy,
-      orderDirection = 'ASC',
-    } = filter;
+  async findAll(filter: FilterShoppingCenterDto): Promise<PaginatedResult<ShoppingCentre>> {
+    const { country, province, city } = filter;
 
-    const qb = this.shoppingCentreRepo
+    let qb = this.shoppingCentreRepo
       .createQueryBuilder('shoppingCentre')
+      .leftJoinAndSelect('shoppingCentre.image', 'image')
+      .leftJoinAndSelect('shoppingCentre.stores', 'stores')
       .leftJoinAndSelect('shoppingCentre.address', 'address');
+
+    qb = applyPagination(qb, filter);
 
     if (country) qb.andWhere('address.country = :country', { country });
     if (province) qb.andWhere('address.province = :province', { province });
     if (city) qb.andWhere('address.city = :city', { city });
 
-    if (search) {
-      qb.andWhere(
-        '(shoppingCentre.name ILIKE :search OR address.suburb ILIKE :search OR address.city ILIKE :search)',
-        {
-          search: `%${search}%`,
-        }
-      );
-    }
-
-    // ✅ Apply dynamic ordering
-    if (orderBy) {
-      qb.orderBy(orderBy, orderDirection);
-    }
-
-    qb.skip((page - 1) * limit).take(limit);
     const [data, total] = await qb.getManyAndCount();
-
-    return {
+    return new PaginatedResult<ShoppingCentre>({
       data,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.ceil(total / filter.limit),
+    });
   }
 
   async findNearby(findNearbyDto: FindNearbyDto): Promise<LocationResponseDto[]> {
@@ -140,7 +106,7 @@ export class ShoppingCentresService {
     return result.map(r => r.country);
   }
 
-  async findProvincesByCountry(country: string): Promise<string[]> {
+  async findProvinces(country: string): Promise<string[]> {
     const result = await this.shoppingCentreRepo
       .createQueryBuilder('shoppingCentre')
       .leftJoinAndSelect('shoppingCentre.address', 'address')
@@ -152,7 +118,7 @@ export class ShoppingCentresService {
     return result.map(r => r.province);
   }
 
-  async findCitiesByProvince(country: string, province: string): Promise<string[]> {
+  async findCities(country: string, province: string): Promise<string[]> {
     const result = await this.shoppingCentreRepo
       .createQueryBuilder('shoppingCentre')
       .leftJoinAndSelect('shoppingCentre.address', 'address')
@@ -168,16 +134,9 @@ export class ShoppingCentresService {
   async findOne(id: string): Promise<ShoppingCentre> {
     const shoppingCentre = await this.shoppingCentreRepo.findOne({
       where: { id },
-      relations: ['address', 'stores'],
+      relations: ['image', 'address', 'stores'],
     });
-    if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');
-    return shoppingCentre;
-  }
 
-  async findById(id: string): Promise<ShoppingCentre> {
-    const shoppingCentre = await this.shoppingCentreRepo.findOne({
-      where: { id },
-    });
     if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');
     return shoppingCentre;
   }
@@ -186,31 +145,33 @@ export class ShoppingCentresService {
     id: string,
     updateShoppingCentreDto: UpdateShoppingCentreDto
   ): Promise<ShoppingCentre> {
-    const { name, address } = updateShoppingCentreDto;
-
-    return this.dataSource.transaction(async manager => {
-      const shoppingCentre = await this.shoppingCentreRepo.findOne({
-        where: { id },
-      });
-
-      if (!shoppingCentre) {
-        throw new NotFoundException('Shopping centre not found');
-      }
-
-      if (name) {
-        shoppingCentre.name = name;
-      }
-
-      if (address) {
-        await this.updateAdressFilters(manager, address);
-        Object.assign(shoppingCentre.address, address);
-      }
-
-      return await manager.save(shoppingCentre);
+    const shoppingCentre = await this.shoppingCentreRepo.findOne({
+      where: { id },
     });
+
+    if (!shoppingCentre) {
+      throw new NotFoundException('Shopping centre not found');
+    }
+
+    Object.assign(shoppingCentre, updateShoppingCentreDto);
+    return this.shoppingCentreRepo.save(shoppingCentre);
   }
 
-  async activate(id: string, active: boolean) {
+  async updateImage(id: string, file: Express.Multer.File) {
+    const shoppingCentre = await this.shoppingCentreRepo.findOne({
+      where: { id },
+      relations: ['image'],
+    });
+
+    if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');
+
+    const image = await this.mediasService.create(MediaGroup.SHOPPING_CENTRE, file);
+    shoppingCentre.image = image;
+
+    return this.shoppingCentreRepo.save(shoppingCentre);
+  }
+
+  async updateActive(id: string, active: boolean) {
     const shoppingCentre = await this.shoppingCentreRepo.findOne({ where: { id } });
     if (!shoppingCentre) {
       throw new NotFoundException('Shopping centre not found');
@@ -220,44 +181,10 @@ export class ShoppingCentresService {
     return this.shoppingCentreRepo.save(shoppingCentre);
   }
 
-  remove(id: string) {
-    return this.shoppingCentreRepo.delete(id);
-  }
+  async remove(id: string) {
+    const shoppingCentre = await this.shoppingCentreRepo.findOne({ where: { id } });
+    if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');
 
-  //!TODO: We saving address fields as string to be used in filtering, changing names are not catered for, maybe we can use scripts to udate changing names in future?
-  async updateAdressFilters(manager: EntityManager, addressDto: CreateAddressDto) {
-    try {
-      // ✅ Ensure Country exists
-      let country = await manager.findOne(Country, {
-        where: { name: addressDto.country },
-      });
-      if (!country) {
-        const newCountry = manager.create(Country, { name: addressDto.country });
-        country = await manager.save(Country, newCountry);
-      }
-
-      // ✅ Ensure Province exists
-      let province = await manager.findOne(Province, {
-        where: { name: addressDto.province, country },
-      });
-      if (!province) {
-        const newProvince = manager.create(Province, {
-          name: addressDto.province,
-          country,
-        });
-        province = await manager.save(Province, newProvince);
-      }
-
-      // ✅ Ensure City exists
-      let city = await manager.findOne(City, {
-        where: { name: addressDto.city, province },
-      });
-      if (!city) {
-        const newCity = manager.create(City, { name: addressDto.city, province });
-        city = await manager.save(City, newCity);
-      }
-    } catch (err) {
-      throw err;
-    }
+    await this.shoppingCentreRepo.remove(shoppingCentre);
   }
 }

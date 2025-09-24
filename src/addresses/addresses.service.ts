@@ -9,6 +9,17 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 export class AddressesService {
   constructor(@InjectRepository(Address) private addressRepository: Repository<Address>) {}
 
+  async create(createAddressDto: CreateAddressDto): Promise<Address> {
+    const { longitude, latitude, ...body } = createAddressDto;
+
+    const address = this.addressRepository.create({
+      ...body,
+      coordinates: { latitude, longitude },
+    });
+
+    return this.addressRepository.save(address);
+  }
+
   async createUserAddress(createAddressDto: CreateAddressDto, currentUser: User): Promise<Address> {
     const { longitude, latitude, ...body } = createAddressDto;
 

@@ -49,12 +49,6 @@ export class PlugsController {
     return this.plugsService.update(id, updatePlugDto);
   }
 
-  @Put('active/:id/:isActive')
-  updateActive(@Param('id') id: string, @Param('isActive') isActive: string) {
-    const active = isActive === 'true'; // convert string to boolean
-    return this.plugsService.updateActive(id, active);
-  }
-
   @Put('media/:id')
   @UseInterceptors(FilesInterceptor('files', 5)) // max 5 files
   @ApiConsumes('multipart/form-data')
@@ -63,6 +57,12 @@ export class PlugsController {
     @UploadedFiles(new ImageFileValidationPipe()) files: Express.Multer.File[]
   ) {
     return this.plugsService.updateMedia(id, files);
+  }
+
+  @Put('active/:id/:isActive')
+  updateActive(@Param('id') id: string, @Param('isActive') isActive: string) {
+    const active = isActive === 'true'; // convert string to boolean
+    return this.plugsService.updateActive(id, active);
   }
 
   @Delete(':id')

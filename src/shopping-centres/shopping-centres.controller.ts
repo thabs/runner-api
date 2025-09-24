@@ -1,4 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiPaginatedResponse, ImageFileValidationPipe } from '@app/common';
+import { ShoppingCentre } from '@app/models';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes } from '@nestjs/swagger';
 import { CreateShoppingCentreDto } from './dto/create-shopping-centre.dto';
 import { FilterShoppingCenterDto } from './dto/filter-shopping-centre.dto';
 import { FindNearbyDto } from './dto/find-nearby.dto';
@@ -10,11 +25,17 @@ export class ShoppingCentresController {
   constructor(private readonly shoppingCentresService: ShoppingCentresService) {}
 
   @Post()
-  create(@Body() createShoppingCentreDto: CreateShoppingCentreDto) {
-    return this.shoppingCentresService.create(createShoppingCentreDto);
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  create(
+    @Body() createShoppingCentreDto: CreateShoppingCentreDto,
+    @UploadedFile(new ImageFileValidationPipe()) file: Express.Multer.File
+  ) {
+    return this.shoppingCentresService.create(createShoppingCentreDto, file);
   }
 
   @Get()
+  @ApiPaginatedResponse(ShoppingCentre)
   findAll(@Query() filter: FilterShoppingCenterDto) {
     return this.shoppingCentresService.findAll(filter);
   }
@@ -31,12 +52,12 @@ export class ShoppingCentresController {
 
   @Get('provinces')
   findProvinces(@Query('country') country: string) {
-    return this.shoppingCentresService.findProvincesByCountry(country);
+    return this.shoppingCentresService.findProvinces(country);
   }
 
   @Get('cities')
   async findCities(@Query('country') country: string, @Query('province') province: string) {
-    return this.shoppingCentresService.findCitiesByProvince(country, province);
+    return this.shoppingCentresService.findCities(country, province);
   }
 
   @Get(':id')
@@ -49,9 +70,20 @@ export class ShoppingCentresController {
     return this.shoppingCentresService.update(id, updateShoppingCentreDto);
   }
 
-  @Put('active/:id/:active')
-  activate(@Param('id') id: string, @Param('active') active: boolean) {
-    return this.shoppingCentresService.activate(id, active);
+  @Put('image/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  updateImage(
+    @Param('id') id: string,
+    @UploadedFile(new ImageFileValidationPipe()) file: Express.Multer.File
+  ) {
+    return this.shoppingCentresService.updateImage(id, file);
+  }
+
+  @Put('active/:id/:isActive')
+  updateActive(@Param('id') id: string, @Param('isActive') isActive: string) {
+    const active = isActive === 'true'; // convert string to boolean
+    return this.shoppingCentresService.updateActive(id, active);
   }
 
   @Delete(':id')
