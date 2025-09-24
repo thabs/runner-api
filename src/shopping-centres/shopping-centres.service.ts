@@ -34,7 +34,7 @@ export class ShoppingCentresService {
   }
 
   async findAll(filter: FilterShoppingCenterDto): Promise<PaginatedResult<ShoppingCentre>> {
-    const { country, province, city } = filter;
+    const { country, province, city, isActive } = filter;
 
     let qb = this.shoppingCentreRepo
       .createQueryBuilder('shoppingCentre')
@@ -47,6 +47,7 @@ export class ShoppingCentresService {
     if (country) qb.andWhere('address.country = :country', { country });
     if (province) qb.andWhere('address.province = :province', { province });
     if (city) qb.andWhere('address.city = :city', { city });
+    if (isActive !== undefined) qb.andWhere('shoppingCentre.isActive = :isActive', { isActive });
 
     const [data, total] = await qb.getManyAndCount();
     return new PaginatedResult<ShoppingCentre>({
@@ -135,6 +136,15 @@ export class ShoppingCentresService {
     const shoppingCentre = await this.shoppingCentreRepo.findOne({
       where: { id },
       relations: ['image', 'address', 'stores'],
+    });
+
+    if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');
+    return shoppingCentre;
+  }
+
+  async findById(id: string): Promise<ShoppingCentre> {
+    const shoppingCentre = await this.shoppingCentreRepo.findOne({
+      where: { id },
     });
 
     if (!shoppingCentre) throw new NotFoundException('Shopping centre not found');

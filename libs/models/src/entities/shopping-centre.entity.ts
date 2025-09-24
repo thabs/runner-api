@@ -18,7 +18,8 @@ export class ShoppingCentre {
   address: Address;
 
   @OneToOne(() => Media, media => media.shoppingCentre, {
-    cascade: true, // allows auto insert/update
+    cascade: true,
+    orphanedRowAction: 'delete', // auto delete removed media
   })
   @JoinColumn()
   image: Media;

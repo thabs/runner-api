@@ -1,37 +1,32 @@
-// dto/filter-users.dto.ts
+import { PaginationRequestDto } from '@app/models/requests/pagination-request';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
-import { Category } from 'stores/entities/category.enum';
+import { IsBoolean, IsIn, IsOptional, IsUUID } from 'class-validator';
 
-export class FilterStoreDto {
+export type StoreOrderBy = 'brand.name' | 'shoppingCentre.name' | 'isActive';
+
+export class FilterStoreDto extends PaginationRequestDto<StoreOrderBy> {
   @IsOptional()
-  @IsArray()
-  @IsEnum(Category, { each: true })
-  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  categories?: Category[];
+  @IsUUID()
+  brandId: string;
+
+  @IsOptional()
+  @IsUUID()
+  shoppingCentreId: string;
 
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true')
   isActive?: boolean;
 
+  @ApiPropertyOptional({
+    enum: ['brand.name', 'shoppingCentre.name', 'isActive'],
+    default: 'brand.name',
+  })
   @IsOptional()
-  @IsString()
-  search?: string;
+  @IsIn(['brand.name', 'shoppingCentre.name', 'isActive'])
+  orderBy: StoreOrderBy = 'brand.name';
 
-  @IsOptional()
-  @IsIn(['store.name', 'store.isActive', 'shoppingCentre.name'])
-  orderBy?: 'store.name' | 'store.isActive' | 'shoppingCentre.name';
-
-  @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  orderDirection?: 'ASC' | 'DESC';
-
-  @IsOptional()
-  @IsNumber()
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  limit?: number = 10;
+  /** Columns that can be searched */
+  readonly searchFields = ['brand.name', 'shoppingCentre.name'];
 }

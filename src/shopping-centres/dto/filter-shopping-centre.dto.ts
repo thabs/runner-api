@@ -1,6 +1,7 @@
 import { PaginationRequestDto } from '@app/models/requests/pagination-request';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 export type ShoppingCentreOrderBy =
   | 'name'
@@ -21,6 +22,11 @@ export class FilterShoppingCenterDto extends PaginationRequestDto<ShoppingCentre
   @IsOptional()
   @IsString()
   city?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true')
+  isActive?: boolean;
 
   @ApiPropertyOptional({
     enum: ['name', 'isActive', 'address.country', 'address.province', 'address.city'],

@@ -59,6 +59,15 @@ export class BrandsService {
     return brand;
   }
 
+  async findById(id: string) {
+    const brand = await this.brandRepo.findOne({
+      where: { id },
+    });
+
+    if (!brand) throw new NotFoundException('Brand not found');
+    return brand;
+  }
+
   async update(id: string, updateBrandDto: UpdateBrandDto) {
     const { tagIds, ...body } = updateBrandDto;
 
@@ -97,7 +106,7 @@ export class BrandsService {
     return this.brandRepo.save(brand);
   }
 
-  async activate(id: string, active: boolean) {
+  async updateActive(id: string, active: boolean) {
     const brand = await this.brandRepo.findOne({ where: { id } });
     if (!brand) {
       throw new NotFoundException('Brand not found');

@@ -25,6 +25,7 @@ export class Media {
 
   @OneToOne(() => ShoppingCentre, shoppingCentre => shoppingCentre.image, {
     nullable: true,
+    onDelete: 'CASCADE',
   })
   shoppingCentre: ShoppingCentre;
 

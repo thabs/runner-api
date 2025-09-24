@@ -56,8 +56,8 @@ export class BrandsController {
   }
 
   @Put('active/:id/:active')
-  activate(@Param('id') id: string, @Param('active') active: boolean) {
-    return this.brandsService.activate(id, active);
+  updateActive(@Param('id') id: string, @Param('active') active: boolean) {
+    return this.brandsService.updateActive(id, active);
   }
 
   @Delete(':id')

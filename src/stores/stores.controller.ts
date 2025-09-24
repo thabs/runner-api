@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  ValidationPipe,
-} from '@nestjs/common';
-import { AssignPlugsDto } from './dto/assign-plugs.dto';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { FilterStoreDto } from './dto/filter-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -24,13 +13,8 @@ export class StoresController {
     return this.storesService.create(createStoreDto);
   }
 
-  @Post(':id/plugs')
-  assignPlugs(@Param('id') id: string, @Body() assigPlugsDto: AssignPlugsDto) {
-    return this.storesService.assignPlugsToStore(id, assigPlugsDto);
-  }
-
   @Get()
-  async findAll(@Query(new ValidationPipe({ transform: true })) filter: FilterStoreDto) {
+  async findAll(@Query() filter: FilterStoreDto) {
     return this.storesService.findAll(filter);
   }
 
@@ -42,6 +26,12 @@ export class StoresController {
   @Put(':id')
   update(@Param('id') id: string, @Body() updateStoreDto: UpdateStoreDto) {
     return this.storesService.update(id, updateStoreDto);
+  }
+
+  @Put('active/:id/:isActive')
+  updateActive(@Param('id') id: string, @Param('isActive') isActive: string) {
+    const active = isActive === 'true'; // convert string to boolean
+    return this.storesService.updateActive(id, active);
   }
 
   @Delete(':id')

@@ -1,121 +1,82 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PaginatedResult, Store } from '@app/models';
+import { applyPagination } from '@app/utils';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PlugsService } from 'plugs/plugs.service';
-import { ShoppingCentresService } from 'shopping-centres/shopping-centres.service';
-import { TagsService } from 'tags/tags.service';
-import { Repository } from 'typeorm';
-import { AssignPlugsDto } from './dto/assign-plugs.dto';
+import { BrandsService } from 'src/brands/brands.service';
+import { ShoppingCentresService } from 'src/shopping-centres/shopping-centres.service';
+import { In, Repository } from 'typeorm';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { FilterStoreDto } from './dto/filter-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
-import { Store } from './entities/store.entity';
 
 @Injectable()
 export class StoresService {
   constructor(
     @InjectRepository(Store) private storeRepo: Repository<Store>,
-    private readonly shoppingCentreService: ShoppingCentresService,
-    private readonly tagService: TagsService,
-    private readonly plugsService: PlugsService
+    private readonly brandsService: BrandsService,
+    private readonly shoppingCentreService: ShoppingCentresService
   ) {}
 
   async create(createStoreDto: CreateStoreDto): Promise<Store> {
-    const { shoppingCentreId, ...body } = createStoreDto;
+    const { brandId, shoppingCentreId, ...body } = createStoreDto;
+
     const shoppingCentre = await this.shoppingCentreService.findById(shoppingCentreId);
+    const brand = await this.brandsService.findById(brandId);
+
     const store = this.storeRepo.create({
       ...body,
+      brand,
       shoppingCentre,
     });
 
     return this.storeRepo.save(store);
   }
 
-  async assignPlugsToStore(id: string, assignPlugsDto: AssignPlugsDto) {
-    const { plugIds } = assignPlugsDto;
-    const store = await this.storeRepo.findOne({
-      where: { id },
-      relations: ['plugs'],
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
-
-    const plugs = await this.plugsService.findByIds(plugIds);
-    store.plugs = plugs;
-
-    return this.storeRepo.save(store);
-  }
-
   async findAll(filter: FilterStoreDto) {
-    const {
-      categories,
-      search,
-      isActive,
-      orderBy,
-      orderDirection = 'ASC',
-      page = 1,
-      limit = 10,
-    } = filter;
+    const { brandId, shoppingCentreId, isActive } = filter;
 
-    const qb = this.storeRepo
+    let qb = this.storeRepo
       .createQueryBuilder('store')
-      .leftJoinAndSelect('store.shoppingCentre', 'shoppingCentre')
-      .leftJoinAndSelect('store.tags', 'tag')
-      .leftJoinAndSelect('store.plugs', 'plug');
+      .leftJoinAndSelect('store.brand', 'brand')
+      .leftJoinAndSelect('store.shoppingCentre', 'shoppingCentre');
 
-    // Apply search filter if provided
-    if (search) {
-      qb.where('LOWER(store.name) LIKE :search', { search: `%${search.toLowerCase()}%` })
-        .orWhere('LOWER(shoppingCentre.name) LIKE :search', { search: `%${search.toLowerCase()}%` })
-        .orWhere('LOWER(tag.name) LIKE :search', { search: `%${search.toLowerCase()}%` })
-        .orWhere('LOWER(plug.name) LIKE :search', { search: `%${search.toLowerCase()}%` });
-    }
+    qb = applyPagination(qb, filter);
+    if (brandId) qb.andWhere('brand.id = :brandId', { brandId });
+    if (shoppingCentreId)
+      qb.andWhere('shoppingCentre.id = :shoppingCentreId', { shoppingCentreId });
+    if (isActive !== undefined) qb.andWhere('store.isActive = :isActive', { isActive });
 
-    // 🎯 Filter by specific categories provided
-    if (categories?.length) {
-      qb.andWhere('store.categories && :categories', { categories });
-    }
-
-    if (isActive !== undefined) {
-      qb.andWhere('store.isActive = :isActive', { isActive });
-    }
-
-    // ✅ Apply dynamic ordering
-    if (orderBy) {
-      qb.orderBy(orderBy, orderDirection);
-    }
-
-    const [stores, total] = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      data: stores,
+    const [data, total] = await qb.getManyAndCount();
+    return new PaginatedResult<Store>({
+      data,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.ceil(total / filter.limit),
+    });
   }
 
   async findOne(id: string): Promise<Store> {
     const store = await this.storeRepo.findOne({
       where: { id },
-      relations: ['shoppingCentre', 'tags', 'plugs'],
+      relations: ['brand', 'shoppingCentre'],
     });
     if (!store) throw new NotFoundException('Store not found');
 
     return store;
   }
 
+  async findByIds(storeIds: string[]): Promise<Store[]> {
+    const stores = await this.storeRepo.findBy({ id: In(storeIds) });
+    return stores;
+  }
+
   async update(id: string, updateStoreDto: UpdateStoreDto) {
-    const { shoppingCentreId, ...body } = updateStoreDto;
+    const { brandId, shoppingCentreId, ...body } = updateStoreDto;
 
     const store = await this.storeRepo.findOne({
       where: { id },
-      relations: ['shoppingCentre'],
+      relations: ['brand', 'shoppingCentre'],
     });
 
     if (!store) {
@@ -123,29 +84,44 @@ export class StoresService {
     }
 
     Object.assign(store, body);
+    if (brandId) {
+      const brand = await this.brandsService.findById(brandId);
+      store.brand = brand;
+    }
+
     if (shoppingCentreId) {
       const shoppingCentre = await this.shoppingCentreService.findById(shoppingCentreId);
       store.shoppingCentre = shoppingCentre;
     }
+
     return this.storeRepo.save(store);
+  }
+
+  async updateActive(id: string, isActive: boolean) {
+    const store = await this.storeRepo.findOne({ where: { id } });
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    store.isActive = isActive;
+    return this.storeRepo.save(store);
+  }
+
+  async setStoresActive(storeIds: string[], isActive: boolean) {
+    await this.storeRepo
+      .createQueryBuilder()
+      .update(Store)
+      .set({ isActive })
+      .whereInIds(storeIds)
+      .execute();
+
+    return { updated: storeIds.length, isActive };
   }
 
   async remove(id: string) {
     const store = await this.storeRepo.findOne({ where: { id } });
-    if (!store) throw new NotFoundException(`Store ${id} not found`);
+    if (!store) throw new NotFoundException('Store not found');
 
-    // Check if any store exists for this tag
-    const hasPlugs = await this.storeRepo
-      .createQueryBuilder('store')
-      .innerJoin('store.plugs', 'plug')
-      .where('store.id = :id', { id })
-      .getExists();
-
-    if (hasPlugs) {
-      throw new BadRequestException(
-        `Cannot delete store '${store.name}', it is still assigned to one or more plugs.`
-      );
-    }
     await this.storeRepo.remove(store);
   }
 }
