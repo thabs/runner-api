@@ -3,7 +3,6 @@ import { applyPagination } from '@app/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MediasService } from 'src/medias/medias.service';
-import { PlugsService } from 'src/plugs/plugs.service';
 import { TagsService } from 'src/tags/tags.service';
 import { Repository } from 'typeorm';
 import { AssignTagsDto } from './dto/assign-tags.dto';
@@ -16,8 +15,7 @@ export class BrandsService {
   constructor(
     @InjectRepository(Brand) private brandRepo: Repository<Brand>,
     private readonly mediaService: MediasService,
-    private readonly tagService: TagsService,
-    private readonly plugsService: PlugsService
+    private readonly tagService: TagsService
   ) {}
 
   async create(createBrandDto: CreateBrandDto, file: Express.Multer.File) {

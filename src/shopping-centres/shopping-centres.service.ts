@@ -1,10 +1,10 @@
 import { MediaGroup, PaginatedResult, ShoppingCentre } from '@app/models';
 import { applyPagination } from '@app/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { AddressesService } from 'src/addresses/addresses.service';
 import { MediasService } from 'src/medias/medias.service';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CreateShoppingCentreDto } from './dto/create-shopping-centre.dto';
 import { FilterShoppingCenterDto } from './dto/filter-shopping-centre.dto';
 import { FindNearbyDto } from './dto/find-nearby.dto';
@@ -16,8 +16,7 @@ export class ShoppingCentresService {
   constructor(
     @InjectRepository(ShoppingCentre) private shoppingCentreRepo: Repository<ShoppingCentre>,
     private readonly addressService: AddressesService,
-    private readonly mediasService: MediasService,
-    @InjectDataSource() private dataSource: DataSource
+    private readonly mediasService: MediasService
   ) {}
 
   async create(createShoppingCentreDto: CreateShoppingCentreDto, file: Express.Multer.File) {

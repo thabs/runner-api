@@ -6,6 +6,7 @@ import { AddressesService } from './addresses.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Address])],
+  exports: [AddressesService],
   controllers: [AddressesController],
   providers: [AddressesService],
 })

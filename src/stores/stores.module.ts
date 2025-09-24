@@ -8,7 +8,6 @@ import { StoresService } from './stores.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Store]), BrandsModule, ShoppingCentresModule],
-  exports: [StoresService],
   controllers: [StoresController],
   providers: [StoresService],
 })

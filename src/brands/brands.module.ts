@@ -1,11 +1,12 @@
 import { Brand } from '@app/models/entities/brand.entity';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MediasModule } from 'src/medias/medias.module';
 import { BrandsController } from './brands.controller';
 import { BrandsService } from './brands.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Brand])],
+  imports: [TypeOrmModule.forFeature([Brand]), MediasModule],
   exports: [BrandsService],
   controllers: [BrandsController],
   providers: [BrandsService],

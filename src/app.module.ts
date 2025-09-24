@@ -1,4 +1,14 @@
-import { Address, Media, Plug, ShoppingCentre, Store, Tag, User } from '@app/models';
+import {
+  Address,
+  Brand,
+  Category,
+  Media,
+  Plug,
+  ShoppingCentre,
+  Store,
+  Tag,
+  User,
+} from '@app/models';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -33,6 +43,10 @@ const ENV = process.env.NODE_ENV;
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_NAME: Joi.string().required(),
+        AWS_S3_BUCKET_REGION: Joi.string().required(),
+        AWS_S3_BUCKET_NAME: Joi.string().required(),
+        AWS_S3_BUCKET_ACCESS_KEY_ID: Joi.string().required(),
+        AWS_S3_BUCKET_SECRET_ACCESS_KEY: Joi.string().required(),
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -44,7 +58,7 @@ const ENV = process.env.NODE_ENV;
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [Address, Media, Plug, ShoppingCentre, Store, Tag, User],
+        entities: [Address, Brand, Category, Media, Plug, ShoppingCentre, Store, Tag, User],
         synchronize: true, //Todo: Investigate this for production, its too risky
       }),
       inject: [ConfigService],
