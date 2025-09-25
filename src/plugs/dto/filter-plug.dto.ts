@@ -3,7 +3,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsBoolean, IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
 
-export type PlugOrderBy = 'brand.name' | 'category.name' | 'isActive';
+export type PlugOrderBy = 'title' | 'brand.name' | 'category.name' | 'isActive';
 
 export class FilterPlugDto extends PaginationRequestDto<PlugOrderBy> {
   @IsOptional()
@@ -26,11 +26,14 @@ export class FilterPlugDto extends PaginationRequestDto<PlugOrderBy> {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ enum: ['brand.name', 'category.name', 'isActive'], default: 'brand.name' })
+  @ApiPropertyOptional({
+    enum: ['title', 'brand.name', 'category.name', 'isActive'],
+    default: 'title',
+  })
   @IsOptional()
-  @IsIn(['brand.name', 'category.name', 'isActive'])
+  @IsIn(['title', 'brand.name', 'category.name', 'isActive'])
   orderBy: PlugOrderBy = 'brand.name';
 
   /** Columns that can be searched */
-  readonly searchFields = ['description', 'brand.name'];
+  readonly searchFields = ['title', 'description', 'brand.name'];
 }

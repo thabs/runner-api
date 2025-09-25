@@ -4,8 +4,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3 } from 'aws-sdk';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { MediaOrderDto } from './dto/media-order.dto';
 
 @Injectable()
 export class MediasService {
@@ -99,6 +100,21 @@ export class MediasService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async updateMediasOrder(mediasOrder: MediaOrderDto[]) {
+    const mediasIds = mediasOrder.map(m => m.id);
+    const entities = await this.mediasRepository.findBy({ id: In(mediasIds) });
+
+    const updatedEntities = entities.map(entity => {
+      const update = mediasOrder.find(m => m.id === entity.id);
+      if (update) {
+        entity.order = update.order;
+      }
+      return entity;
+    });
+
+    return await this.mediasRepository.save(updatedEntities);
   }
 
   async deleteFile(url: string) {

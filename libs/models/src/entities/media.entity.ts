@@ -23,6 +23,9 @@ export class Media {
   @Column({ unique: true })
   url: string;
 
+  @Column()
+  order: number;
+
   @OneToOne(() => ShoppingCentre, shoppingCentre => shoppingCentre.image, {
     nullable: true,
     onDelete: 'CASCADE',
@@ -42,6 +45,6 @@ export class Media {
   @OneToMany(() => Store, store => store.shoppingCentre, { nullable: true })
   stores: Store[];
 
-  @ManyToOne(() => Plug, plug => plug.medias, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Plug, plug => plug.images, { onDelete: 'CASCADE' })
   plug: Plug;
 }

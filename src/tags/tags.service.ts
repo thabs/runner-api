@@ -1,4 +1,5 @@
-import { Tag } from '@app/models';
+import { PaginatedResult, Tag } from '@app/models';
+import { applyPagination } from '@app/utils';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -19,51 +20,27 @@ export class TagsService {
     return this.tagRepo.save(newTag);
   }
 
-  async findAll(filter: FilterTagDto) {
-    const { search, orderBy, orderDirection = 'ASC', page = 1, limit = 10 } = filter;
+  async findAll(filter: FilterTagDto): Promise<PaginatedResult<Tag>> {
+    let qb = this.tagRepo.createQueryBuilder('tag').leftJoinAndSelect('tag.brands', 'brands');
+    qb = applyPagination(qb, filter);
 
-    const qb = this.tagRepo.createQueryBuilder('tag').leftJoin('tag.stores', 'store');
-    // 👉 Select only the fields you need
-    qb.select(['tag.id', 'tag.name', 'store.id', 'store.name']);
-
-    // Apply search filter if provided
-    if (search) {
-      qb.where('LOWER(tag.name) LIKE :search', { search: `%${search.toLowerCase()}%` }).orWhere(
-        'LOWER(store.name) LIKE :search',
-        { search: `%${search.toLowerCase()}%` }
-      );
-    }
-
-    // ✅ Apply dynamic ordering
-    if (orderBy) {
-      qb.orderBy(orderBy, orderDirection);
-    }
-
-    const [tags, total] = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      data: tags,
+    const [data, total] = await qb.getManyAndCount();
+    return new PaginatedResult<Tag>({
+      data,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.ceil(total / filter.limit),
+    });
   }
 
   async findOne(id: string): Promise<Tag> {
-    const tag = await this.tagRepo
-      .createQueryBuilder('tag')
-      .leftJoin('tag.stores', 'store')
-      .select(['tag.id', 'tag.name', 'store.id', 'store.name'])
-      .where('tag.id = :id', { id })
-      .getOne();
+    const tag = await this.tagRepo.findOne({
+      where: { id },
+      relations: ['brands'],
+    });
 
-    if (!tag) {
-      throw new NotFoundException(`Tag with id '${id}' not found.`);
-    }
+    if (!tag) throw new NotFoundException('Tag not found');
     return tag;
   }
 
@@ -74,31 +51,28 @@ export class TagsService {
 
   async update(id: string, updateTagDto: UpdateTagDto) {
     const tag = await this.tagRepo.findOne({ where: { id } });
-
     if (!tag) {
       throw new NotFoundException('Tag not found');
     }
-    Object.assign(tag, updateTagDto);
 
+    Object.assign(tag, updateTagDto);
     return this.tagRepo.save(tag);
   }
 
   async remove(id: string) {
-    const tag = await this.tagRepo.findOne({ where: { id } });
-    if (!tag) throw new NotFoundException(`Tag ${id} not found`);
+    const tag = await this.tagRepo.findOne({
+      where: { id },
+      relations: ['brands'],
+    });
 
-    // Check if any store exists for this tag
-    const hasStores = await this.tagRepo
-      .createQueryBuilder('tag')
-      .innerJoin('tag.stores', 'store')
-      .where('tag.id = :id', { id })
-      .getExists();
-
-    if (hasStores) {
-      throw new BadRequestException(
-        `Cannot delete tag '${tag.name}', it is still assigned to one or more stores.`
-      );
+    if (!tag) {
+      throw new NotFoundException('Tag not found');
     }
-    await this.tagRepo.remove(tag);
+
+    if (tag.brands.length > 0) {
+      throw new BadRequestException(`Cannot delete tag: ${tag.name}, it is still linked to brands`);
+    }
+
+    return this.tagRepo.remove(tag);
   }
 }

@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { FilterTagDto } from './dto/filter-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
@@ -24,7 +14,7 @@ export class TagsController {
   }
 
   @Get()
-  async findAll(@Query(new ValidationPipe({ transform: true })) filter: FilterTagDto) {
+  async findAll(@Query() filter: FilterTagDto) {
     return this.tagsService.findAll(filter);
   }
 

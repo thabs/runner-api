@@ -1,9 +1,10 @@
 import { MediaGroup, PaginatedResult, Plug } from '@app/models';
 import { applyPagination } from '@app/utils';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BrandsService } from 'src/brands/brands.service';
 import { CategoriesService } from 'src/categories/categories.service';
+import { MediaOrderDto } from 'src/medias/dto/media-order.dto';
 import { MediasService } from 'src/medias/medias.service';
 import { In, Repository } from 'typeorm';
 import { CreatePlugDto } from './dto/create-plug.dto';
@@ -20,7 +21,7 @@ export class PlugsService {
   ) {}
 
   async create(createPlugDto: CreatePlugDto, files: Express.Multer.File[]) {
-    const { categoryId, brandId, description } = createPlugDto;
+    const { categoryId, brandId, ...body } = createPlugDto;
 
     const brand = await this.brandsService.findOne(brandId);
     if (!brand) {
@@ -32,15 +33,20 @@ export class PlugsService {
       throw new NotFoundException('Category not found');
     }
 
-    const medias = await Promise.all(
+    // Verify if brand can accept the departments
+    if (!brand.departments.includes(category.department)) {
+      throw new BadRequestException(`Brand does not allow department ${category.department}`);
+    }
+
+    const images = await Promise.all(
       files.map(file => this.mediasService.create(MediaGroup.PLUGS, file))
     );
 
     const plug = this.plugRepo.create({
-      description,
+      ...body,
       brand,
       category,
-      medias,
+      images,
     });
 
     return this.plugRepo.save(plug);
@@ -51,7 +57,7 @@ export class PlugsService {
       .createQueryBuilder('plug')
       .leftJoinAndSelect('plug.brand', 'brand')
       .leftJoinAndSelect('plug.category', 'category')
-      .leftJoinAndSelect('plug.medias', 'medias');
+      .leftJoinAndSelect('plug.images', 'images');
 
     qb = applyPagination(qb, filter);
 
@@ -81,7 +87,8 @@ export class PlugsService {
   async findOne(id: string) {
     const plug = await this.plugRepo.findOne({
       where: { id },
-      relations: ['brand', 'category', 'medias'],
+      relations: ['brand', 'category', 'images'],
+      order: { images: { order: 'ASC' } },
     });
 
     if (!plug) throw new NotFoundException('Plug not found');
@@ -121,20 +128,33 @@ export class PlugsService {
     return this.plugRepo.save(plug);
   }
 
-  async updateMedia(id: string, files: Express.Multer.File[]) {
+  async updateImages(id: string, files: Express.Multer.File[]) {
     const plug = await this.plugRepo.findOne({
       where: { id },
-      relations: ['medias'],
+      relations: ['images'],
     });
-
     if (!plug) throw new NotFoundException('Plug not found');
 
-    const medias = await Promise.all(
+    const images = await Promise.all(
       files.map(file => this.mediasService.create(MediaGroup.PLUGS, file))
     );
-    plug.medias = medias;
+    plug.images = images;
 
     return this.plugRepo.save(plug);
+  }
+
+  async updateImagesOrder(id: string, imagesOrder: MediaOrderDto[]) {
+    const plug = await this.plugRepo.findOne({
+      where: { id },
+      relations: ['images'],
+    });
+    if (!plug) throw new NotFoundException('Plug not found');
+
+    const plugImageIds = new Set(plug.images.map(i => i.id));
+    const allExist = imagesOrder.every(image => plugImageIds.has(image.id));
+
+    if (!allExist) throw new BadRequestException('Invalid plug images provided');
+    return this.mediasService.updateMediasOrder(imagesOrder);
   }
 
   async updateActive(id: string, isActive: boolean) {

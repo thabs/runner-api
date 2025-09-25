@@ -1,23 +1,18 @@
-import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { PaginationRequestDto } from '@app/models';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsOptional } from 'class-validator';
 
-export class FilterTagDto {
-  @IsOptional()
-  @IsString()
-  search?: string;
+export type TagOrderBy = 'name';
 
+export class FilterTagDto extends PaginationRequestDto<TagOrderBy> {
+  @ApiPropertyOptional({
+    enum: ['name'],
+    default: 'name',
+  })
   @IsOptional()
-  @IsIn(['tag.name'])
-  orderBy?: 'tag.name';
+  @IsIn(['name'])
+  orderBy: TagOrderBy = 'name';
 
-  @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  orderDirection?: 'ASC' | 'DESC';
-
-  @IsOptional()
-  @IsNumber()
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  limit?: number = 10;
+  /** Columns that can be searched */
+  readonly searchFields = ['name', 'brands.name'];
 }

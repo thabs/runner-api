@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes } from '@nestjs/swagger';
+import { MediaOrderDto } from 'src/medias/dto/media-order.dto';
 import { CreatePlugDto } from './dto/create-plug.dto';
 import { FilterPlugDto } from './dto/filter-plug.dto';
 import { UpdatePlugDto } from './dto/update-plug.dto';
@@ -52,11 +53,16 @@ export class PlugsController {
   @Put('media/:id')
   @UseInterceptors(FilesInterceptor('files', 5)) // max 5 files
   @ApiConsumes('multipart/form-data')
-  updateMedia(
+  updateImages(
     @Param('id') id: string,
     @UploadedFiles(new ImageFileValidationPipe()) files: Express.Multer.File[]
   ) {
-    return this.plugsService.updateMedia(id, files);
+    return this.plugsService.updateImages(id, files);
+  }
+
+  @Put('images-order/:id')
+  updateImagesOrder(@Param('id') id: string, @Body() imagesOrder: MediaOrderDto[]) {
+    return this.plugsService.updateImagesOrder(id, imagesOrder);
   }
 
   @Put('active/:id/:isActive')

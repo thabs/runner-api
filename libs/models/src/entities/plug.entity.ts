@@ -9,7 +9,10 @@ export class Plug {
   id: string;
 
   @Column()
-  description?: string;
+  title: string;
+
+  @Column()
+  description: string;
 
   @ManyToOne(() => Brand, brand => brand.plugs)
   brand: Brand;
@@ -22,7 +25,7 @@ export class Plug {
     cascade: true,
     orphanedRowAction: 'delete', // auto delete removed media
   })
-  medias: Media[];
+  images: Media[];
 
   @Column({ default: true })
   isActive: boolean;
